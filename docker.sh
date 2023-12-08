@@ -65,7 +65,8 @@ iptables -N DOCKER-INCOMING
 csf_allow_file="/etc/csf/csf.allow"
 while IFS= read -r line; do
   if [[ $line != "#"* ]]; then
-	iptables -A DOCKER-INCOMING -s $line/32 -j ACCEPT
+    ip=$(echo "$line" | awk '{print $1}')
+	iptables -A DOCKER-INCOMING -s $ip/32 -j ACCEPT
   fi
 done < "$csf_allow_file"
 
