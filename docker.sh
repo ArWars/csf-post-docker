@@ -39,7 +39,7 @@ add_to_docker_isolation() {
 }
 
 DOCKER_INT="docker0"
-DOCKER_NETWORK="172.17.0.0/16,172.11.0.0/24"
+DOCKER_NETWORK="172.11.0.0/24,172.17.0.0/16,172.18.0.0/16,172.19.0.0/16,172.20.0.0/16" # Add your docker networks here, separated by commas
 IFS=',' read -ra NETWORKS <<< "$DOCKER_NETWORK"
 
 iptables-save | grep -v -- '-j DOCKER' | iptables-restore
@@ -63,6 +63,7 @@ if [ "${#NETWORKS[@]}" -eq 1 ]; then
     iptables -t nat -A POSTROUTING -s "${NETWORKS[0]}" ! -o "$DOCKER_INT" -j MASQUERADE
 else
     for network in "${NETWORKS[@]}"; do
+        echo "Adding $network to docker NAT"
         iptables -t nat -A POSTROUTING -s "$network" ! -o "$DOCKER_INT" -j MASQUERADE
     done
 fi
