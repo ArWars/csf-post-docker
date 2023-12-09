@@ -39,7 +39,8 @@ add_to_docker_isolation() {
 }
 
 DOCKER_INT="docker0"
-DOCKER_NETWORK="172.17.0.0/16"
+DOCKER_NETWORK="172.17.0.0/16,172.11.0.0/24"
+IFS=',' read -ra NETWORKS <<< "$DOCKER_NETWORK"
 
 iptables-save | grep -v -- '-j DOCKER' | iptables-restore
 chain_exists DOCKER && iptables -X DOCKER
@@ -58,8 +59,14 @@ add_to_forward ${DOCKER_INT}
 
 iptables -t nat -A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
 iptables -t nat -A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
-iptables -t nat -A POSTROUTING -s ${DOCKER_NETWORK} ! -o ${DOCKER_INT} -j MASQUERADE
- 
+if [ "${#NETWORKS[@]}" -eq 1 ]; then
+    iptables -t nat -A POSTROUTING -s "${NETWORKS[0]}" ! -o "$DOCKER_INT" -j MASQUERADE
+else
+    for network in "${NETWORKS[@]}"; do
+        iptables -t nat -A POSTROUTING -s "$network" ! -o "$DOCKER_INT" -j MASQUERADE
+    done
+fi
+
 iptables -N DOCKER-INCOMING
 
 csf_allow_file="/etc/csf/csf.allow"
